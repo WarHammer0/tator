@@ -25,27 +25,16 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
 
-if os.getenv("TATOR_DEBUG").lower() == "true":
-    # SECURITY WARNING: don't run with debug turned on in production!
-    DEBUG = True
-else:
-    DEBUG = False
+# SECURITY WARNING: don't run with debug turned on in production!
+DEBUG = os.getenv("TATOR_DEBUG").lower() == "true"
 
 # Control whether minified JS is used
-if os.getenv("TATOR_USE_MIN_JS").lower() == "true":
-    USE_MIN_JS = True
-else:
-    USE_MIN_JS = False
+USE_MIN_JS = os.getenv("TATOR_USE_MIN_JS").lower() == "true":
 
-try:
-    ALLOWED_HOSTS = [
-        os.getenv('MAIN_HOST'),
-        'nginx-internal-svc', # Allows internal cluster access
-    ]
-except: # Support standalone `docker run`
-    ALLOWED_HOSTS = [
-        os.getenv('MAIN_HOST'),
-    ]
+ALLOWED_HOSTS = [
+    os.getenv('MAIN_HOST'),
+    'nginx-internal-svc', # Allows internal cluster access
+]
 
 # Application definition
 
@@ -118,28 +107,16 @@ WSGI_APPLICATION = 'tator_online.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/2.1/ref/settings/#databases
 
-if DEBUG:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.contrib.gis.db.backends.postgis',
-            'NAME': 'tator_online',
-            'USER': os.getenv('POSTGRES_USERNAME'),
-            'PASSWORD': os.getenv('POSTGRES_PASSWORD'),
-            'HOST': 'postgis-svc',
-            'PORT': os.getenv('POSTGRES_PORT', 5432),
-        }
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.contrib.gis.db.backends.postgis',
+        'NAME': 'tator_online',
+        'USER': os.getenv('POSTGRES_USERNAME'),
+        'PASSWORD': os.getenv('POSTGRES_PASSWORD'),
+        'HOST': 'postgis-svc' if DEBUG else os.getenv('POSTGRES_HOST'),
+        'PORT': os.getenv('POSTGRES_PORT', 5432),
     }
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.contrib.gis.db.backends.postgis',
-            'NAME': 'tator_online',
-            'USER': os.getenv('POSTGRES_USERNAME'),
-            'PASSWORD': os.getenv('POSTGRES_PASSWORD'),
-            'HOST': os.getenv('POSTGRES_HOST'),
-            'PORT': os.getenv('POSTGRES_PORT', 5432),
-        }
-    }
+}
 
 
 # Password validation
@@ -266,12 +243,15 @@ SILENCED_SYSTEM_CHECKS = ['fields.W342']
 if os.path.exists("/cognito/cognito.yaml"):
     with open("/cognito/cognito.yaml", "r") as cfile:
         data = yaml.safe_load(cfile)
-        REST_FRAMEWORK['DEFAULT_AUTHENTICATION_CLASSES'] = (*REST_FRAMEWORK['DEFAULT_AUTHENTICATION_CLASSES'], 'django_cognito_jwt.JSONWebTokenAuthentication')
-        COGNITO_AWS_REGION=data['aws-region']
-        COGNITO_USER_POOL=data['pool-id']
-        COGNITO_AUDIENCE=data['client-id']
-        COGNITO_DOMAIN=f"{data['domain']}.auth.{data['aws-region']}.amazoncognito.com"
-        COGNITO_USER_MODEL = 'main.User'
-        COGNITO_ENABLED=True
+    REST_FRAMEWORK['DEFAULT_AUTHENTICATION_CLASSES'] = (
+        *REST_FRAMEWORK['DEFAULT_AUTHENTICATION_CLASSES'],
+        'django_cognito_jwt.JSONWebTokenAuthentication'
+    )
+    COGNITO_AWS_REGION = data['aws-region']
+    COGNITO_USER_POOL = data['pool-id']
+    COGNITO_AUDIENCE = data['client-id']
+    COGNITO_DOMAIN = f"{data['domain']}.auth.{data['aws-region']}.amazoncognito.com"
+    COGNITO_USER_MODEL = 'main.User'
+    COGNITO_ENABLED = True
 else:
-    COGNITO_ENABLED=False
+    COGNITO_ENABLED = False
