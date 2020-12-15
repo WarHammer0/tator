@@ -18,7 +18,7 @@ class CsvRenderer(BaseRenderer):
         temp_list=[]
         return_value="No Records found."
         try:
-            if len(listObj) > 0:
+            if listObj:
                 field_names=listObj[0].keys()
                 for entry in listObj:
                     row_object={}

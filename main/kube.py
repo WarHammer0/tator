@@ -101,7 +101,7 @@ def _get_api(cluster):
 
 def _get_clusters(cache):
     """ Get unique clusters for the given job cache. Cluster can be specified by
-        None (incluster config), 'remote_transcode' (use cluster specified by 
+        None (incluster config), 'remote_transcode' (use cluster specified by
         remote transcodes), or a JobCluster ID. Uniqueness is determined by
         hostname of the given cluster.
     """
@@ -157,7 +157,7 @@ def cancel_jobs(selector, cache):
         )
 
         # Patch the workflow with shutdown=Stop.
-        if len(response['items']) > 0:
+        if response['items']:
             for job in response['items']:
                 name = job['metadata']['name']
                 response = api.delete_namespaced_custom_object(
@@ -186,7 +186,7 @@ class JobManagerMixin:
             plural='workflows',
             label_selector=selector,
         )
-        if len(response['items']) > 0:
+        if response['items']:
             project = int(response['items'][0]['metadata']['labels']['project'])
         return project
 
@@ -268,7 +268,7 @@ class TatorTranscode(JobManagerMixin):
                 'image': '{{workflow.parameters.wget_image}}',
                 'imagePullPolicy': 'IfNotPresent',
                 'command': ['wget',],
-                'args': ['-O', '{{inputs.parameters.original}}', 
+                'args': ['-O', '{{inputs.parameters.original}}',
                          '--header=Authorization: Token {{workflow.parameters.token}}',
                          '--header=Upload-Uid: {{workflow.parameters.uid}}',
                          '{{inputs.parameters.url}}'],
@@ -309,15 +309,22 @@ class TatorTranscode(JobManagerMixin):
 
         # Unpacks a tarball and sets up the work products for follow up
         # dags or steps
-        unpack_params = [{'name': f'videos-{x}',
-                          'valueFrom': {'path': f'/work/videos_{x}.json'}} for x in range(NUM_WORK_PACKETS)]
+        unpack_params = []
+        for x in range(NUM_WORK_PACKETS):
+            unpack_params.append(
+                {"name": f"videos-{x}", "valueFrom": {"path": f"/work/videos_{x}.json"}}
+            )
+            # TODO: Don't make work packets for localizations / states
+            unpack_params.append(
+                {
+                    "name": f"localizations-{x}",
+                    "valueFrom": {"path": f"/work/localizations_{x}.json"},
+                }
+            )
+            unpack_params.append(
+                {"name": f"states-{x}", "valueFrom": {"path": f"/work/states_{x}.json"}}
+            )
 
-        # TODO: Don't make work packets for localizations / states
-        unpack_params.extend([{'name': f'localizations-{x}',
-                               'valueFrom': {'path': f'/work/localizations_{x}.json'}} for x in range(NUM_WORK_PACKETS)])
-
-        unpack_params.extend([{'name': f'states-{x}',
-                               'valueFrom': {'path': f'/work/states_{x}.json'}} for x in range(NUM_WORK_PACKETS)])
         self.unpack_task = {
             'name': 'unpack',
             'metadata': {
@@ -600,8 +607,7 @@ class TatorTranscode(JobManagerMixin):
 
         # Generate an args structure for the DAG
         args = [{'name': 'url', 'value': url}]
-        for key in paths:
-            args.append({'name': key, 'value': paths[key]})
+        args.extend({'name': key, 'value': paths[key]} for key in paths)
         parameters = {"parameters" : args}
 
         def make_item_arg(name):
@@ -655,28 +661,28 @@ class TatorTranscode(JobManagerMixin):
                 }
             } # end of dag
 
-        unpack_task['dag']['tasks'].extend([{'name': f'transcode-task-{x}',
-                                             'template': 'transcode-pipeline',
-                                             'arguments' : item_parameters,
-                                             'withParam' : f'{{{{tasks.unpack-task.outputs.parameters.videos-{x}}}}}',
-                                             'dependencies' : ['unpack-task']} for x in range(NUM_WORK_PACKETS)])
+        unpack_task['dag']['tasks'].extend({'name': f'transcode-task-{x}',
+                                            'template': 'transcode-pipeline',
+                                            'arguments' : item_parameters,
+                                            'withParam' : f'{{{{tasks.unpack-task.outputs.parameters.videos-{x}}}}}',
+                                            'dependencies' : ['unpack-task']} for x in range(NUM_WORK_PACKETS))
         unpack_task['dag']['tasks'].append({'name': f'image-upload-task',
                                              'template': 'image-upload',
                                              'dependencies' : ['unpack-task']})
 
         deps = [f'transcode-task-{x}' for x in range(NUM_WORK_PACKETS)]
         deps.append('image-upload-task')
-        unpack_task['dag']['tasks'].extend([{'name': f'state-import-task-{x}',
-                                             'template': 'data-import',
-                                             'arguments' : state_import_parameters,
-                                             'dependencies' : deps,
-                                             'withParam': f'{{{{tasks.unpack-task.outputs.parameters.states-{x}}}}}'} for x in range(NUM_WORK_PACKETS)])
+        unpack_task['dag']['tasks'].extend({'name': f'state-import-task-{x}',
+                                            'template': 'data-import',
+                                            'arguments' : state_import_parameters,
+                                            'dependencies' : deps,
+                                            'withParam': f'{{{{tasks.unpack-task.outputs.parameters.states-{x}}}}}'} for x in range(NUM_WORK_PACKETS))
 
-        unpack_task['dag']['tasks'].extend([{'name': f'localization-import-task-{x}',
-                                             'template': 'data-import',
-                                             'arguments' : localization_import_parameters,
-                                             'dependencies' : deps,
-                                             'withParam': f'{{{{tasks.unpack-task.outputs.parameters.localizations-{x}}}}}'}  for x in range(NUM_WORK_PACKETS)])
+        unpack_task['dag']['tasks'].extend({'name': f'localization-import-task-{x}',
+                                            'template': 'data-import',
+                                            'arguments' : localization_import_parameters,
+                                            'dependencies' : deps,
+                                            'withParam': f'{{{{tasks.unpack-task.outputs.parameters.localizations-{x}}}}}'}  for x in range(NUM_WORK_PACKETS))
         return unpack_task
 
     def get_transcode_dag(self, media_id=None):
@@ -899,11 +905,11 @@ class TatorTranscode(JobManagerMixin):
         # Define paths for transcode outputs.
         base, _ = os.path.splitext(name)
         args = {
-            'original': '/work/' + name,
-            'transcoded': '/work/' + base + '_transcoded',
-            'thumbnail': '/work/' + base + '_thumbnail.jpg',
-            'thumbnail_gif': '/work/' + base + '_thumbnail_gif.gif',
-            'segments': '/work/' + base + '_segments.json',
+            'original': f'/work/{name}',
+            'transcoded': f'/work/{base}_transcoded',
+            'thumbnail': f'/work/{base}_thumbnail.jpg',
+            'thumbnail_gif': f'/work/{base}_thumbnail_gif.gif',
+            'segments': f'/work/{base}_segments.json',
             'entity_type': str(entity_type),
             'md5' : md5,
             'name': name
@@ -914,7 +920,7 @@ class TatorTranscode(JobManagerMixin):
             self.pvc['spec']['resources']['requests']['storage'] = bytes_to_mi_str(rounded_size)
 
         docker_registry = os.getenv('SYSTEM_IMAGES_REGISTRY')
-        
+
         if self.remote:
             host = f'{PROTO}{os.getenv("MAIN_HOST")}'
         else:
@@ -1027,7 +1033,7 @@ class TatorAlgorithm(JobManagerMixin):
         # Save off the algorithm.
         self.alg = alg
 
-    def start_algorithm(self, media_ids, sections, gid, uid, token, project, user, 
+    def start_algorithm(self, media_ids, sections, gid, uid, token, project, user,
                         extra_params: list=[]):
         """ Starts an algorithm job, substituting in parameters in the
             workflow spec.
@@ -1125,4 +1131,3 @@ class TatorAlgorithm(JobManagerMixin):
                               'datetime': datetime.datetime.utcnow().isoformat() + 'Z'})
 
         return response
-

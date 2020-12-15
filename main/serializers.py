@@ -25,7 +25,7 @@ class EnumField(serializers.ChoiceField):
     def to_internal_value(self, data):
         try:
             return self.enum[data]
-        except:
+        except KeyError:
             self.fail('invalid_choice', input=data)
 
 class TemporaryFileSerializer(serializers.ModelSerializer):
@@ -105,18 +105,19 @@ class MembershipSerializer(serializers.ModelSerializer):
         return obj.user.username
 
     def get_permission_str(self, obj):
-        if obj.permission == Permission.VIEW_ONLY:
-            out = 'View Only'
-        elif obj.permission == Permission.CAN_EDIT:
-            out = 'Can Edit'
-        elif obj.permission == Permission.CAN_TRANSFER:
-            out = 'Can Transfer'
-        elif obj.permission == Permission.CAN_EXECUTE:
-            out = 'Can Execute'
-        elif obj.permission == Permission.FULL_CONTROL:
-            out = 'Full Control'
-        else:
+        permission_dict = {
+            Permission.VIEW_ONLY: "View Only",
+            Permission.CAN_EDIT: "Can Edit",
+            Permission.CAN_TRANSFER: "Can Transfer",
+            Permission.CAN_EXECUTE: "Can Execute",
+            Permission.FULL_CONTROL: "Full Control",
+        }
+
+        try:
+            out = permission_dict[obj.permission]
+        except KeyError:
             raise RuntimeError("Invalid permission setting!")
+
         return out
 
     class Meta:

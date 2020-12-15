@@ -144,10 +144,8 @@ class AuthProjectView(View):
             return HttpResponse(status=200)
         else:
             # Files that aren't in the whitelist or database are forbidden
-            msg = f"({user}/{user.id}): "
-            msg += f"Attempted to access unauthorized file '{original_url}'"
-            msg += f". "
-            msg += f"Does not have access to '{project}'"
+            msg = (f"({user}/{user.id}): Attempted to access unauthorized file '{original_url}'."
+                   f"Does not have access to '{project}'")
             Notify.notify_admin_msg(msg)
             return HttpResponse(status=403)
 
@@ -180,9 +178,7 @@ class AuthAdminView(View):
             return HttpResponse(status=200)
         else:
             # Files that aren't in the whitelist or database are forbidden
-            msg = f"({user}/{user.id}): "
-            msg += f"Attempted to access unauthorized URL '{original_url}'"
-            msg += f"."
+            msg = f"({user}/{user.id}): Attempted to access unauthorized URL '{original_url}'."
             Notify.notify_admin_msg(msg)
             return HttpResponse(status=403)
 
@@ -211,8 +207,7 @@ class AuthUploadView(View):
             try:
                 (user, _) = TokenAuthentication().authenticate(request)
             except Exception as e:
-                msg = "*Security Alert:* "
-                msg += f"Attempted to access unauthorized upload {original_url}."
+                msg = "*Security Alert:* Attempted to access unauthorized upload {original_url}."
                 Notify.notify_admin_msg(msg)
                 logger.warn(msg)
                 return HttpResponse(status=403)
@@ -235,8 +230,7 @@ class AuthUploadView(View):
             return HttpResponse(status=200)
         else:
             # Files that aren't in the whitelist or database are forbidden
-            msg = f"({user}/{user.id}): "
-            msg += f"Attempted to access unauthorized upload {original_url}."
+            msg = f"({user}/{user.id}): Attempted to access unauthorized upload {original_url}."
             Notify.notify_admin_msg(msg)
             return HttpResponse(status=403)
 
@@ -253,9 +247,8 @@ def ErrorNotifierView(request, code,message,details=None):
 
     # Generate slack message
     if Notify.notification_enabled():
-        msg = f"{request.get_host()}:"
-        msg += f" ({request.user}/{request.user.id})"
-        msg += f" caused {code} at {request.get_full_path()}"
+        msg = (f"{request.get_host()}: ({request.user}/{request.user.id})"
+               f" caused {code} at {request.get_full_path()}")
         if details:
             Notify.notify_admin_file(msg, msg + '\n' + details)
         else:
@@ -268,8 +261,12 @@ def ErrorNotifierView(request, code,message,details=None):
 
 def NotFoundView(request, exception=None):
     return ErrorNotifierView(request, 404, "Not Found")
+
+
 def PermissionErrorView(request, exception=None):
     return ErrorNotifierView(request, 403, "Permission Denied")
+
+
 def ServerErrorView(request, exception=None):
     e_type, value, tb = sys.exc_info()
     error_trace=traceback.format_exception(e_type,value,tb)

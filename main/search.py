@@ -305,7 +305,7 @@ class TatorSearch:
         })
 
         # Load in duplicates, if any
-        for idx,duplicate in enumerate(duplicates):
+        for idx, duplicate in enumerate(duplicates):
             # duplicate_id needs to be unique we use the upper
             # 8 bits of the id field to indicate which duplicate
             # it is. This won't create collisions until there are

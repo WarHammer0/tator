@@ -30,15 +30,15 @@ def clearDataAboutMedia(id):
     :param id: The id of the media element to purge metadata about.
     """
     #Delete all states by hitting associations which auto delete states
-    qs=State.objects.filter(media__in=[id])
+    qs = State.objects.filter(media__in=[id])
     qs.delete()
 
     #Delete all localizations
-    qs=Localization.objects.filter(media=id)
+    qs = Localization.objects.filter(media=id)
     qs.delete()
 
 def updateProjectTotals(force=False):
-    projects=Project.objects.all()
+    projects = Project.objects.all()
     for project in projects:
         temp_files = TemporaryFile.objects.filter(project=project)
         files = Media.objects.filter(project=project)
@@ -174,18 +174,18 @@ from pprint import pprint
 
 def make_video_definition(disk_file, url_path):
         cmd = [
-        "ffprobe",
-        "-v","error",
-        "-show_entries", "stream",
-        "-print_format", "json",
-        disk_file,
+            "ffprobe",
+            "-v","error",
+            "-show_entries", "stream",
+            "-print_format", "json",
+            disk_file,
         ]
         output = subprocess.run(cmd, stdout=subprocess.PIPE, check=True).stdout
         video_info = json.loads(output)
         stream_idx=0
         for idx, stream in enumerate(video_info["streams"]):
             if stream["codec_type"] == "video":
-                stream_idx=idx
+                stream_idx = idx
                 break
         stream = video_info["streams"][stream_idx]
         video_def = getVideoDefinition(
@@ -209,7 +209,7 @@ def migrateVideosToNewSchema(project):
         if video.original:
             archival_definition = make_video_definition(video.original,
                                                         video.original)
-        media_files = {"streaming" : [streaming_definition]}
+        media_files = {"streaming": [streaming_definition]}
 
         if archival_definition:
             media_files.update({"archival": [archival_definition]})
@@ -317,10 +317,10 @@ def make_resources():
             num_resources += len(create_buffer)
             create_buffer = []
             logger.info(f"Created {num_resources} resources...")
-    if len(path_list) > 0:
+    if path_list:
         create_buffer += _resources_from_paths(path_list)
         path_list = []
-    if len(create_buffer) > 0:
+    if create_buffer:
         Resource.objects.bulk_create(create_buffer)
         num_resources += len(create_buffer)
         create_buffer = []
@@ -345,7 +345,7 @@ def make_resources():
             num_relations += len(media_relations)
             media_relations = []
             logger.info(f"Created {num_relations} media relations...")
-    if len(media_relations) > 0:
+    if media_relations:
         Resource.media.through.objects.bulk_create(media_relations)
         num_relations += len(media_relations)
         media_relations = []

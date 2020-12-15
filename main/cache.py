@@ -57,7 +57,7 @@ class TatorCache:
 
     def set_job(self, job):
         """ Stores a job for cancellation or authentication. Job is a dict including
-            uid, gid, user id, project id, algorithm id (-1 if not an algorithm), 
+            uid, gid, user id, project id, algorithm id (-1 if not an algorithm),
             and time created.
         """
         val = json.dumps(job)
@@ -117,7 +117,7 @@ class TatorCache:
         else:
             jobs = []
         return jobs
-            
+
     def invalidate_all(self):
         """Invalidates all caches.
         """

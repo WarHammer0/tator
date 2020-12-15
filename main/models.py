@@ -29,7 +29,7 @@ from django.contrib.postgres.fields import ArrayField
 from django.contrib.postgres.fields import JSONField
 from django.core.validators import MinValueValidator
 from django.core.validators import RegexValidator
-from django.db.models import FloatField, Transform,UUIDField
+from django.db.models import FloatField, Transform, UUIDField
 from django.db.models.signals import post_save
 from django.db.models.signals import pre_delete
 from django.db.models.signals import post_delete
@@ -66,11 +66,11 @@ class Depth(Transform):
 
 PathField.register_lookup(Depth)
 
-FileFormat= [('mp4','mp4'), ('webm','webm'), ('mov', 'mov')]
-ImageFileFormat= [('jpg','jpg'), ('png','png'), ('bmp', 'bmp'), ('raw', 'raw')]
+FileFormat= [('mp4', 'mp4'), ('webm', 'webm'), ('mov', 'mov')]
+ImageFileFormat= [('jpg', 'jpg'), ('png', 'png'), ('bmp', 'bmp'), ('raw', 'raw')]
 
 ## Describes different association models in the database
-AssociationTypes = [('Media','Relates to one or more media items'),
+AssociationTypes = [('Media', 'Relates to one or more media items'),
                     ('Frame', 'Relates to a specific frame in a video'), #Relates to one or more frames in a video
                     ('Localization', 'Relates to localization(s)')] #Relates to one-to-many localizations
 
@@ -149,7 +149,7 @@ class TatorUserManager(UserManager):
 
 class User(AbstractUser):
     objects=TatorUserManager()
-    cognito_id = UUIDField(primary_key=False,db_index=True,null=True,blank=True, editable=False)
+    cognito_id = UUIDField(primary_key=False, db_index=True, null=True, blank=True, editable=False)
     middle_initial = CharField(max_length=1)
     initials = CharField(max_length=3)
     organization = ForeignKey(Organization, on_delete=SET_NULL, null=True, blank=True)
@@ -173,14 +173,17 @@ class Project(Model):
     num_files = IntegerField(default=0)
     summary = CharField(max_length=1024)
     filter_autocomplete = JSONField(null=True, blank=True)
+
     def has_user(self, user_id):
         return self.membership_set.filter(user_id=user_id).exists()
+
     def user_permission(self, user_id):
         permission = None
         qs = self.membership_set.filter(user_id=user_id)
         if qs.exists():
             permission = qs[0].permission
         return permission
+
     def __str__(self):
         return self.name
 
@@ -284,7 +287,7 @@ class Algorithm(Model):
     cluster = ForeignKey(JobCluster, null=True, blank=True, on_delete=SET_NULL, db_column='cluster')
     files_per_job = PositiveIntegerField(
         default=1,
-        validators=[MinValueValidator(1),]
+        validators=[MinValueValidator(1), ]
     )
 
     def __str__(self):
@@ -347,7 +350,7 @@ def temporary_file_delete(sender, instance, **kwargs):
 # Entity types
 
 class MediaType(Model):
-    dtype = CharField(max_length=16, choices=[('image', 'image'), ('video', 'video'), ('multi','multi')])
+    dtype = CharField(max_length=16, choices=[('image', 'image'), ('video', 'video'), ('multi', 'multi')])
     project = ForeignKey(Project, on_delete=CASCADE, null=True, blank=True, db_column='project')
     name = CharField(max_length=64)
     description = CharField(max_length=256, blank=True)
@@ -387,8 +390,8 @@ class MediaType(Model):
         style: (optional) String of GUI-related styles.
     """
     archive_config = JSONField(default=None, null=True, blank=True)
-    streaming_config = JSONField(default=None, null=True,blank=True)
-    overlay_config = JSONField(default=None,null=True,blank=True)
+    streaming_config = JSONField(default=None, null=True, blank=True)
+    overlay_config = JSONField(default=None, null=True, blank=True)
     """
     Overlay configuration provides text overlay on video / image based on
     configruation examples:
@@ -510,7 +513,7 @@ class LeafType(Model):
     description = CharField(max_length=256, blank=True)
     visible = BooleanField(default=True)
     """ Whether this type should be displayed in the UI."""
-    attribute_types = JSONField(null=True, blank=True)
+    attribute_types = JSONField(default=list, null=True, blank=True)
     """ User defined attributes.
 
         An array of objects, each containing the following fields:
@@ -563,7 +566,7 @@ class Media(Model):
 
                  .. code-block ::
 
-                     map = {"archival": [ VIDEO_DEF, VIDEO_DEF,... ],
+                     map = {"archival": [ VIDEO_DEF, VIDEO_DEF, ... ],
                             "streaming": [ VIDEO_DEF, VIDEO_DEF, ... ],
                             <"audio": [AUDIO_DEF]>}
                      video_def = {"path": <path_to_disk>,
@@ -686,7 +689,7 @@ class Media(Model):
             self.media_files['audio'] = audio
 
         # Handle roi, layout, and quality
-        for x in ['layout','ids','quality']:
+        for x in ['layout', 'ids', 'quality']:
             if x in media_files:
                 self.media_files[x] = media_files[x]
 
@@ -824,12 +827,12 @@ class Localization(Model):
     """ Width for boxes."""
     height = FloatField(null=True, blank=True)
     """ Height for boxes."""
-    parent = ForeignKey("self", on_delete=SET_NULL, null=True, blank=True,db_column='parent')
+    parent = ForeignKey("self", on_delete=SET_NULL, null=True, blank=True, db_column='parent')
     """ Pointer to localization in which this one was generated from """
 
 @receiver(post_save, sender=Localization)
 def localization_save(sender, instance, created, **kwargs):
-    if getattr(instance,'_inhibit', False) == False:
+    if getattr(instance, '_inhibit', False) == False:
         TatorSearch().create_document(instance)
     else:
         pass
@@ -897,7 +900,7 @@ def calc_segments(sender, **kwargs):
     #Bring up related media to association
     instance.media.set(sortedLocalizations.all().values_list('media', flat=True))
     segmentList=[]
-    current=[None,None]
+    current=[None, None]
     last=None
     for localization in sortedLocalizations:
         if current[0] is None:
@@ -953,11 +956,11 @@ class Leaf(Model):
 
     def computePath(self):
         """ Returns the string representing the path element """
-        pathStr=self.name.replace(" ","_").replace("-","_").replace("(","_").replace(")","_")
+        pathStr=self.name.replace(" ", "_").replace("-", "_").replace("(", "_").replace(")", "_")
         if self.parent:
             pathStr=self.parent.computePath()+"."+pathStr
         elif self.project:
-            projName=self.project.name.replace(" ","_").replace("-","_").replace("(","_").replace(")","_")
+            projName=self.project.name.replace(" ", "_").replace("-", "_").replace("(", "_").replace(")", "_")
             pathStr=projName+"."+pathStr
         return pathStr
 
@@ -1033,10 +1036,7 @@ def type_to_obj(typeObj):
         return None
 
 def make_dict(keys, row):
-    d={}
-    for idx,col in enumerate(keys):
-        d[col.name] = row[idx]
-    return d
+    return {col.name: row[idx] for idx, col in enumerate(keys)}
 
 def database_qs(qs):
     return database_query(str(qs.query))
