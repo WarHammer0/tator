@@ -35,27 +35,27 @@ class MediaListSchema(AutoSchema):
         elif method == 'POST':
             short_desc = "Create media."
             long_desc = dedent("""\
-            This method creates a `Media` object in the database. For images, the 
+            This method creates a `Media` object in the database. For images, the
             media must already be uploaded and an upload URL must be provided, as
             well as the group and job IDs associated with the upload. For videos,
             it is recommended to use the `Transcode` endpoint, which will create
-            the media object itself. This method is only needed for local 
+            the media object itself. This method is only needed for local
             transcodes. In that case, it will create an empty Media object;
             thumbnails, streaming, and archival videos must be subsequently uploaded via
-            tus. Videos must be  moved to the media folder using the `MoveVideo` endpoint, 
+            tus. Videos must be  moved to the media folder using the `MoveVideo` endpoint,
             which also calls the `Media` PATCH method to update the `media_files` field.
             Thumbnails may be saved by just using the `Media` PATCH method directly.
             """)
         elif method == 'PATCH':
             short_desc = "Update media list."
             long_desc = dedent("""\
-            This method does a bulk update on all media matching a query. Only 
+            This method does a bulk update on all media matching a query. Only
             user-defined attributes may be bulk updated.
             """)
         elif method == 'DELETE':
             short_desc = "Delete media list."
             long_desc = dedent("""\
-            This method performs a bulk delete on all media matching a query. It is 
+            This method performs a bulk delete on all media matching a query. It is
             recommended to use a GET request first to check what is being deleted.
             """)
         return f"{short_desc}\n\n{boilerplate}\n\n{long_desc}"

@@ -350,18 +350,19 @@ def temporary_file_delete(sender, instance, **kwargs):
 # Entity types
 
 class MediaType(Model):
-    dtype = CharField(max_length=16, choices=[('image', 'image'), ('video', 'video'), ('multi', 'multi')])
-    project = ForeignKey(Project, on_delete=CASCADE, null=True, blank=True, db_column='project')
+    dtype = CharField(
+        max_length=16,
+        choices=[("image", "image"), ("video", "video"), ("multi", "multi")],
+    )
+    project = ForeignKey(
+        Project, on_delete=CASCADE, null=True, blank=True, db_column="project"
+    )
     name = CharField(max_length=64)
     description = CharField(max_length=256, blank=True)
     visible = BooleanField(default=True)
     """ Whether this type should be displayed in the UI."""
-    editTriggers = JSONField(null=True,
-                             blank=True)
-    file_format = CharField(max_length=4,
-                            null=True,
-                            blank=True,
-                            default=None)
+    editTriggers = JSONField(null=True, blank=True)
+    file_format = CharField(max_length=4, null=True, blank=True, default=None)
     default_volume = IntegerField(default=0)
     """ Default Volume for Videos (default is muted) """
     attribute_types = JSONField(default=list, null=True, blank=True)
@@ -1023,17 +1024,15 @@ class Bookmark(Model):
 
 def type_to_obj(typeObj):
     """Returns a data object for a given type object"""
-    _dict = {
-        MediaType: Media,
-        LocalizationType: Localization,
-        StateType: State,
-        LeafType: Leaf,
-    }
 
-    if typeObj in _dict:
-        return _dict[typeObj]
-    else:
-        return None
+    return type_to_obj._dict.get(typeObj)
+
+type_to_obj._dict = {
+    MediaType: Media,
+    LocalizationType: Localization,
+    StateType: State,
+    LeafType: Leaf,
+}
 
 def make_dict(keys, row):
     return {col.name: row[idx] for idx, col in enumerate(keys)}

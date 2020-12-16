@@ -49,13 +49,14 @@ class MediaTypeListSchema(AutoSchema):
             body = {
                 'required': True,
                 'content': {'application/json': {
-                'schema': {'$ref': '#/components/schemas/MediaTypeSpec'},
-                'example': {
-                    'name': 'My media type',
-                    'dtype': 'video',
-                    'attribute_types': attribute_type_example,
-                },
-            }}}
+                    'schema': {'$ref': '#/components/schemas/MediaTypeSpec'},
+                    'example': {
+                        'name': 'My media type',
+                        'dtype': 'video',
+                        'attribute_types': attribute_type_example,
+                    },
+                }}
+            }
         return body
 
     def _get_responses(self, path, method):
@@ -115,12 +116,13 @@ class MediaTypeDetailSchema(AutoSchema):
             body = {
                 'required': True,
                 'content': {'application/json': {
-                'schema': {'$ref': '#/components/schemas/MediaTypeUpdate'},
-                'example': {
-                    'name': 'New name',
-                    'description': 'New description',
-                }
-            }}}
+                    'schema': {'$ref': '#/components/schemas/MediaTypeUpdate'},
+                    'example': {
+                        'name': 'New name',
+                        'description': 'New description',
+                    }
+                }}
+            }
         return body
 
     def _get_responses(self, path, method):

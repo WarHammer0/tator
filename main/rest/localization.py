@@ -48,7 +48,7 @@ class LocalizationListAPI(BaseListView, AttributeFilterMixin):
     def _get(self, params):
         self.validate_attribute_filter(params)
         postgres_params = ['project', 'media_id', 'type', 'version', 'operation', 'format', 'excludeParents','frame']
-        use_es = any([key not in postgres_params for key in params])
+        use_es = any(key not in postgres_params for key in params)
 
         # Get the localization list.
         if use_es:
@@ -60,7 +60,7 @@ class LocalizationListAPI(BaseListView, AttributeFilterMixin):
             )
             if self.operation == 'count':
                 response_data = {'count': len(annotation_ids)}
-            elif len(annotation_ids) > 0:
+            elif annotation_ids:
                 if params['excludeParents']:
                     qs = Localization.objects.filter(pk__in=annotation_ids)
                     parent_set = Localization.objects.filter(pk__in=Subquery(
@@ -165,7 +165,7 @@ class LocalizationListAPI(BaseListView, AttributeFilterMixin):
                                             required_fields[loc['type']][2],
                                             loc)
                       for loc in loc_specs]
-       
+
         # Create the localization objects.
         localizations = []
         create_buffer = []
@@ -216,7 +216,7 @@ class LocalizationListAPI(BaseListView, AttributeFilterMixin):
             params,
             'localization',
         )
-        if len(annotation_ids) > 0:
+        if annotation_ids:
             # Delete any state many to many relations to these localizations.
             state_qs = State.localizations.through.objects.filter(localization__in=annotation_ids)
             state_qs._raw_delete(state_qs.db)
@@ -234,7 +234,7 @@ class LocalizationListAPI(BaseListView, AttributeFilterMixin):
             params,
             'localization',
         )
-        if len(annotation_ids) > 0:
+        if annotation_ids:
             qs = Localization.objects.filter(pk__in=annotation_ids)
             new_attrs = validate_attributes(params, qs[0])
             bulk_patch_attributes(new_attrs, qs)

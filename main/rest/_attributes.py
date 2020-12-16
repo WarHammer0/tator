@@ -199,15 +199,16 @@ def validate_attributes(params, obj):
     """
     attributes = params.get("attributes", None)
     if attributes:
-        attr_types = {a['name']:a for a in obj.meta.attribute_types}
+        attr_types = {a['name']: a for a in obj.meta.attribute_types}
         for attr_name in attributes:
             if attr_name == 'tator_user_sections':
                 # This is a built-in attribute used for organizing media sections.
                 continue
-            if attr_name in attr_types:
+            try:
                 attr_type = attr_types[attr_name]
-            else:
+            except KeyError:
                 raise Exception(f"Invalid attribute {attr_name} for entity type {obj.meta.name}")
+
             convert_attribute(attr_type, attributes[attr_name])
     return attributes
 

@@ -89,29 +89,24 @@ class MediaTypeDetailAPI(BaseDetailView):
             name, description, and (like other entity types) may have any number of attribute
             types associated with it.
         """
-        name = params.get('name', None)
-        description = params.get('description', None)
-        file_format = params.get('file_format', None)
-        archive_config = params.get('archive_config', None)
-        streaming_config = params.get('streaming_config', None)
-        overlay_config = params.get('overlay_config', None)
+        patchable_fields = [
+            "name",
+            "description",
+            "file_format",
+            "archive_config",
+            "streaming_config",
+            "overlay_config",
+        ]
+        obj = MediaType.objects.get(pk=params["id"])
 
-        obj = MediaType.objects.get(pk=params['id'])
-        if name is not None:
-            obj.name = name
-        if description is not None:
-            obj.description = description
-        if file_format is not None:
-            obj.file_format = file_format
-        if archive_config is not None:
-            obj.archive_config = archive_config
-        if streaming_config is not None:
-            obj.streaming_config = streaming_config
-        if overlay_config is not None:
-            obj.overlay_config = overlay_config
+        for field_name in patchable_fields:
+            value = params.get(field_name)
+
+            if value:
+                setattr(obj, field_name, value)
 
         obj.save()
-        return {'message': 'Media type updated successfully!'}
+        return {"message": "Media type updated successfully!"}
 
     def _delete(self, params):
         """ Delete media type.

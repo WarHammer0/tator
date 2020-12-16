@@ -5,6 +5,7 @@ import shutil
 import mimetypes
 import datetime
 from uuid import uuid1
+import itertools
 
 from django.db import transaction
 from django.db.models import Case, When
@@ -239,7 +240,7 @@ class MediaListAPI(BaseListView, AttributeFilterMixin):
             A media may be an image or a video. Media are a type of entity in Tator,
             meaning they can be described by user defined attributes.
 
-            This method performs a bulk delete on all media matching a query. It is 
+            This method performs a bulk delete on all media matching a query. It is
             recommended to use a GET request first to check what is being deleted.
         """
         self.validate_attribute_filter(params)
@@ -247,8 +248,7 @@ class MediaListAPI(BaseListView, AttributeFilterMixin):
             params['project'],
             params,
         )
-        count = len(media_ids)
-        if count > 0:
+        if media_ids:
             # Delete any state many-to-many relations to this media.
             state_media_qs = State.media.through.objects.filter(media__in=media_ids)
             state_media_qs._raw_delete(state_media_qs.db)
@@ -279,13 +279,13 @@ class MediaListAPI(BaseListView, AttributeFilterMixin):
             # Note that clearing children cannot be done using has_parent because it does
             # not accept queries with size, and has_parent also does not accept ids queries.
             TatorSearch().delete(self.kwargs['project'], query)
-            loc_ids = [f'box_{id_}' for id_ in loc_qs.iterator()] \
-                    + [f'line_{id_}' for id_ in loc_qs.iterator()] \
-                    + [f'dot_{id_}' for id_ in loc_qs.iterator()]
+            loc_ids = list(itertools.chain.from_iterable(
+                [f"box_{id_}", f"line_{id_}", f"dot_{id_}"] for id_ in loc_qs.iterator()
+            )
             TatorSearch().delete(self.kwargs['project'], {'query': {'ids': {'values': loc_ids}}})
             state_ids = [f'state_{_id}' for id_ in state_qs.iterator()]
             TatorSearch().delete(self.kwargs['project'], {'query': {'ids': {'values': state_ids}}})
-        return {'message': f'Successfully deleted {count} medias!'}
+        return {"message": f"Successfully deleted {len(media_ids)} medias!"}
 
     def _patch(self, params):
         """ Update list of media.
@@ -293,7 +293,7 @@ class MediaListAPI(BaseListView, AttributeFilterMixin):
             A media may be an image or a video. Media are a type of entity in Tator,
             meaning they can be described by user defined attributes.
 
-            This method performs a bulk update on all media matching a query. It is 
+            This method performs a bulk update on all media matching a query. It is
             recommended to use a GET request first to check what is being updated.
             Only attributes are eligible for bulk patch operations.
         """
@@ -302,14 +302,12 @@ class MediaListAPI(BaseListView, AttributeFilterMixin):
             params['project'],
             params,
         )
-        count = len(media_ids)
-        if count > 0:
+        if media_ids:
             qs = Media.objects.filter(pk__in=media_ids)
             new_attrs = validate_attributes(params, qs[0])
             bulk_patch_attributes(new_attrs, qs)
             TatorSearch().update(self.kwargs['project'], query, new_attrs)
-        return {'message': f'Successfully patched {count} medias!'}
-        
+        return {'message': f'Successfully patched {len(media_ids)} medias!'}
 
     def get_queryset(self):
         params = parse(self.request)
@@ -344,7 +342,7 @@ class MediaDetailAPI(BaseDetailView):
     def _patch(self, params):
         """ Update individual media.
 
-            Updates to `media_files` (video only) may append video definitions, but 
+            Updates to `media_files` (video only) may append video definitions, but
             cannot replace or delete them. To delete media, the DELETE method must
             be used.
 
